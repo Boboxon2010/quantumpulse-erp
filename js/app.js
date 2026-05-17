@@ -144,8 +144,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if(logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault(); // Tugmaning inline onclick amalini to'xtatadi
-            localStorage.clear(); // Workspace va keshni o'chiradi
-            window.location.href = "login.html"; // Login sahifasiga otadi
+            performLogout();
         });
     }
 });
+
+// Global logout helper - call from inline handlers or other scripts
+function performLogout() {
+    try {
+        // Clear local storage but preserve non-sensitive settings if needed
+        localStorage.clear();
+    } catch (e) {}
+    // Ensure immediate redirect to login page
+    try { window.location.href = 'login.html'; } catch (e) { window.location.replace('login.html'); }
+}

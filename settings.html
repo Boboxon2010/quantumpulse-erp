@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumPulse | Advanced Settings</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .settings-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 20px; }
+        .set-box { padding: 25px; margin-bottom: 25px; }
+        .set-box h3 { margin-bottom: 20px; font-family: var(--font-heading); color: var(--neon-cyan); font-size: 15px; border-bottom: 1px solid var(--border-glass); padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted); }
+        .form-control { width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 10px; color: #fff; outline: none; font-family: var(--font-body); }
+        .form-control:focus { border-color: var(--neon-purple); }
+        .btn-action { padding: 10px 20px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-family: var(--font-heading); font-size: 12px; }
+        .toggle-container { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .log-area { background: rgba(0,0,0,0.4); border-radius: 10px; padding: 15px; max-height: 180px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #a78bfa; line-height: 1.6; }
+        .theme-btn { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-glass); background: rgba(255,255,255,0.05); color: #fff; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-logo"><i class="fa-solid fa-atom"></i><span id="side-comp-name">QuantumPulse</span></div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item smooth-transition"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+                <a href="crm.html" class="nav-item smooth-transition"><i class="fa-solid fa-users-viewfinder"></i> Neural CRM</a>
+                <a href="inventory.html" class="nav-item smooth-transition"><i class="fa-solid fa-boxes-stacked"></i> Hyperion Inventory</a>
+                <a href="finance.html" class="nav-item smooth-transition"><i class="fa-solid fa-wallet"></i> Apex FinTech</a>
+                <a href="settings.html" class="nav-item active smooth-transition"><i class="fa-solid fa-sliders"></i> Sozlamalar</a>
+            </nav>
+            <div class="sidebar-footer"><button id="logout-btn"><i class="fa-solid fa-power-off"></i> Chiqish</button></div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-navbar glass-panel">
+                <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Sozlamalardan qidirish..."></div>
+                <div class="top-actions"><div class="system-time" id="live-time">00:00:00</div></div>
+            </header>
+
+            <div class="dashboard-wrapper">
+                <div class="welcome-section">
+                    <h1>SaaS <span>Control Center</span></h1>
+                    <p>Ekotizim ma'lumotlari, xavfsizlik va arxitektura sozlamalarini boshqarish paneli.</p>
+                </div>
+
+                <div class="settings-layout">
+                    <div class="set-box glass-panel">
+                        <h3><i class="fa-solid fa-id-card"></i> Korxona va Valyuta</h3>
+                        <div class="form-group">
+                            <label>Tizim Egasi Ismi</label>
+                            <input type="text" id="set-name" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Kompaniya Nomi</label>
+                            <input type="text" id="set-company" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Tizim Valyutasi (Multi-Currency)</label>
+                            <select id="set-currency" class="form-control">
+                                <option value="USD">AQSH Dollari ($)</option>
+                                <option value="UZS">O'zbekiston So'mi (UZS)</option>
+                                <option value="EUR">Yevro (€)</option>
+                            </select>
+                        </div>
+                        <button class="btn-action smooth-transition" id="save-profile" style="background:var(--neon-green); color:#000;">O'ZGARISHLARNI SAQLASH</button>
+                    </div>
+
+                    <div class="set-box glass-panel">
+                        <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Dizayn va AI Modeli</h3>
+                        <div class="form-group">
+                            <label>Tayyor Mavzular (Presets)</label>
+                            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                                <button class="theme-btn" onclick="setPreset('#00f2fe', '#4facfe')">Cyber Neon</button>
+                                <button class="theme-btn" onclick="setPreset('#00e676', '#1b5e20')">Matrix Green</button>
+                                <button class="theme-btn" onclick="setPreset('#f43f5e', '#881337')">Crimson Deep</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>AI Bashorat Sezgirligi (Threshold %)</label>
+                            <input type="range" id="set-ai-threshold" min="50" max="95" class="form-control">
+                            <span id="ai-threshold-val" style="font-size:12px; color:var(--neon-cyan)">80%</span>
+                        </div>
+                        <div class="toggle-container">
+                            <div>
+                                <h4>Tizim ovozlari</h4>
+                                <p style="font-size:12px; color:var(--text-muted)">Tugmalarga bosganda audio signal</p>
+                            </div>
+                            <input type="checkbox" id="set-sounds" style="width:20px; height:20px;">
+                        </div>
+                    </div>
+
+                    <div class="set-box glass-panel">
+                        <h3><i class="fa-solid fa-database"></i> Ma'lumotlar Ombori (Backup & Simulator)</h3>
+                        <p style="font-size:13px; color:var(--text-muted); margin-bottom:15px;">Tizim ma'lumotlarini eksport qiling yoki stress test uchun soxta ma'lumotlar quying.</p>
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <button class="btn-action" id="btn-export" style="background:rgba(0,242,254,0.1); color:var(--neon-cyan); border:1px solid var(--neon-cyan);"><i class="fa-solid fa-download"></i> Backup .JSON</button>
+                            <button class="btn-action" onclick="document.getElementById('import-file').click()" style="background:rgba(79,172,254,0.1); color:#4facfe; border:1px solid #4facfe;"><i class="fa-solid fa-upload"></i> Restore Data</button>
+                            <input type="file" id="import-file" style="display:none" accept=".json">
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn-action" id="btn-simulate" style="background:rgba(0,230,118,0.1); color:var(--neon-green); border:1px solid var(--neon-green);"><i class="fa-solid fa-bolt"></i> 50x Data Injector</button>
+                            <button class="btn-action" id="btn-reset" style="background:rgba(255,75,75,0.1); color:#ff4b4b; border:1px solid #ff4b4b;"><i class="fa-solid fa-trash-can"></i> Factory Reset</button>
+                        </div>
+                    </div>
+
+                    <div class="set-box glass-panel">
+                        <h3><i class="fa-solid fa-shield-halved"></i> Tizim Faoliyati Audit Jurnali</h3>
+                        <div class="log-area" id="audit-log-box">Loglar yuklanmoqda...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const config = JSON.parse(localStorage.getItem('qp_auth_config')) || {};
+            
+            // Inputlarni hozirgi holat bo'yicha yuklash
+            document.getElementById('set-name').value = config.name || "Admin";
+            document.getElementById('set-company').value = config.company || "QuantumPulse";
+            document.getElementById('set-currency').value = config.selectedCurrency || "USD";
+            document.getElementById('set-ai-threshold').value = config.aiThreshold || 80;
+            document.getElementById('ai-threshold-val').textContent = (config.aiThreshold || 80) + "%";
+            document.getElementById('set-sounds').checked = config.soundNotifications !== false;
+
+            // AI slider harakati
+            document.getElementById('set-ai-threshold').addEventListener('input', (e) => {
+                document.getElementById('ai-threshold-val').textContent = e.target.value + "%";
+            });
+
+            // Profil va Korxonani saqlash
+            document.getElementById('save-profile').addEventListener('click', () => {
+                config.name = document.getElementById('set-name').value;
+                config.company = document.getElementById('set-company').value;
+                config.selectedCurrency = document.getElementById('set-currency').value;
+                config.aiThreshold = parseInt(document.getElementById('set-ai-threshold').value);
+                config.soundNotifications = document.getElementById('set-sounds').checked;
+                
+                localStorage.setItem('qp_auth_config', JSON.stringify(config));
+                window.logSystemActivity("Tizim va moliya sozlamalari yangilandi");
+                window.playSystemSound('success');
+                alert("✅ Sozlamalar muvaffaqiyatli saqlandi!");
+                location.reload();
+            });
+
+            // BACKUP EXPORT (.json)
+            document.getElementById('btn-export').addEventListener('click', () => {
+                const dump = {
+                    auth: localStorage.getItem('qp_auth_config'),
+                    crm: localStorage.getItem('qp_customers'),
+                    inventory: localStorage.getItem('qp_inventory')
+                };
+                const blob = new Blob([JSON.stringify(dump)], {type: "application/json"});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `QuantumPulse_Backup_${new Date().toISOString().slice(0,10)}.json`;
+                a.click();
+                window.logSystemActivity("Tizim ma'lumotlari zaxira nusxa (Backup) qilindi");
+            });
+
+            // BACKUP IMPORT (Restore)
+            document.getElementById('import-file').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    try {
+                        const data = JSON.parse(evt.target.result);
+                        if(data.auth) localStorage.setItem('qp_auth_config', data.auth);
+                        if(data.crm) localStorage.setItem('qp_customers', data.crm);
+                        if(data.inventory) localStorage.setItem('qp_inventory', data.inventory);
+                        window.logSystemActivity("Tizim bazasi zaxira faylidan tiklandi");
+                        alert("🎉 Ma'lumotlar muvaffaqiyatli tiklandi! Tizim qayta yuklanadi.");
+                        location.reload();
+                    } catch(err) { alert("❌ Xato! Fayl formati yaroqsiz."); }
+                };
+                reader.readAsText(file);
+            });
+
+            // FACTORY RESET
+            document.getElementById('btn-reset').addEventListener('click', () => {
+                if(confirm("🚨 DIQQAT: Barcha ma'lumotlar butunlay o'chib ketadi! Tizimni nollashni xohlaysizmi?")) {
+                    localStorage.clear();
+                    alert("Tizim muvaffaqiyatli tozalandi.");
+                    window.location.href = "register.html";
+                }
+            });
+
+            // 50x DATA INJECTOR (Stress Test)
+            document.getElementById('btn-simulate').addEventListener('click', () => {
+                let currentCRM = JSON.parse(localStorage.getItem('qp_customers')) || [];
+                const names = ["Oliver", "Emma", "William", "Sophia", "James", "Isabella", "Lucas", "Mia", "Benjamin", "Charlotte"];
+                
+                for(let i=0; i<20; i++) {
+                    let randName = names[Math.floor(Math.random()*names.length)] + " " + Math.floor(Math.random()*100);
+                    currentCRM.push({
+                        id: "CRM-" + (104 + i),
+                        name: randName,
+                        email: randName.toLowerCase().replace(" ", "") + "@global.com",
+                        history: [Math.floor(Math.random()*10), Math.floor(Math.random()*30)+15, Math.floor(Math.random()*30)+45],
+                        totalSpent: Math.floor(Math.random()*5000) + 500,
+                        tier: Math.random() > 0.5 ? "Premium" : "Standart"
+                    });
+                }
+                localStorage.setItem('qp_customers', JSON.stringify(currentCRM));
+                window.logSystemActivity("Simulyator ishga tushirildi: 20 ta yangi mijoz bazaga urildi");
+                window.playSystemSound('success');
+                alert("⚡ Stress Test: 20 ta yangi mijoz va sun'iy xarid tarixlari bazaga qo'shildi! Neural CRM bo'limida ko'rishingiz mumkin.");
+                location.reload();
+            });
+
+            // AUDIT LOGS VIZUALIZASIYASI
+            const auditBox = document.getElementById('audit-log-box');
+            const logs = JSON.parse(localStorage.getItem('qp_activity_logs')) || [];
+            if(logs.length === 0) {
+                auditBox.innerHTML = "Sub-tizimlar toza. Hech qanday log topilmadi.";
+            } else {
+                auditBox.innerHTML = logs.map(l => `[${l.time}] -> ${l.action}`).join('<br>');
+            }
+        });
+
+        // TAYYOR MAVZULAR LOGIKASI
+        function setPreset(cyan, purple) {
+            const config = JSON.parse(localStorage.getItem('qp_auth_config')) || {};
+            config.themeCyan = cyan;
+            config.themePurple = purple;
+            localStorage.setItem('qp_auth_config', JSON.stringify(config));
+            window.logSystemActivity(`Dizayn mavzusi o'zgartirildi (${cyan})`);
+            location.reload();
+        }
+    </script>
+</body>
+</html>

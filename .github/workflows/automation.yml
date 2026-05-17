@@ -1,0 +1,41 @@
+name: QuantumPulse Background Automation
+
+on:
+  push:
+    branches:
+      - main  # Agar asosiy branchingiz 'master' bo'lsa, master deb yozing
+  workflow_dispatch: # Istalgan payt qo'lda ham bitta bosish bilan ishga tushirish tugmasi
+
+permissions:
+  contents: write  # Skript o'zgartirgan fayllarni GitHub-ga qayta yozish (push) huquqi
+
+jobs:
+  run-automation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛠️ Kodni yuklab olish (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 🐍 Python muhitini yoqish
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: ⚡ Avtomatlashtirilgan skriptni ijro etish
+        run: |
+          python github_uploader.py
+
+      - name: 💾 O'zgarishlarni GitHub-ga qayta saqlash (Auto Commit & Push)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Barcha o'zgarishlarni indekslash
+          git add .
+          
+          # Agar o'zgarishlar bo'lsa commit qiladi, bo'lmasa xatolik bermay o'tib ketadi
+          # [skip ci] tegi cheksiz siklga tushib qolishni to'liq bloklaydi
+          git diff-index --quiet HEAD || git commit -m "Automated data sync [skip ci]"
+          
+          # O'zgarishlarni repoga qayta push qilish
+          git push

@@ -1,0 +1,37 @@
+name: QuantumPulse Enterprise Live Deploy
+
+on:
+  push:
+    branches:
+      - main  # Agar asosiy branchingiz 'master' bo'lsa, master deb yozing
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛠️ Kodni yuklab olish (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 🌐 GitHub Pages muhitini sozlash
+        uses: actions/configure-pages@v4
+
+      - name: 📦 Statik fayllarni paketlash (Artifact)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.' # Loyihaning asosiy papkasi (index.html turgan joy)
+
+      - name: 🚀 Serverga yuklash (Deploy to Pages)
+        id: deployment
+        uses: actions/deploy-pages@v4

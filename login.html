@@ -106,9 +106,33 @@
             const company = document.getElementById('company-input').value.trim();
 
             const users = JSON.parse(localStorage.getItem('qp_user_records') || '{}');
-            if (!users[username]) { alert('Foydalanuvchi topilmadi. Iltimos roʻyxatdan oʻting.'); return; }
+            let user = users[username];
+            if (!user) {
+                // Fallback: if per-user namespaced data exists, allow recovery flow
+                const hasLocalData = localStorage.getItem(`qp_inventory::${username}`) || localStorage.getItem(`qp_customers::${username}`);
+                if (hasLocalData) {
+                    const doRecover = confirm("Foydalanuvchi lokal ma'lumotlarda topildi, parolni qayta tiklash orqali hisobni tiklamoqchimisiz?");
+                    if (!doRecover) { alert('Iltimos roʻyxatdan oʻting yoki toʻgʻri foydalanuvchi nomini kiriting.'); return; }
 
-            const user = users[username];
+                    // Prompt for new password (simple recovery). In production use secure flow.
+                    let newPass = prompt('Yangi parolni kiriting (kamida 6 belgi):');
+                    if (!newPass || newPass.length < 6) { alert('Parol juda qisqa yoki bekor qilindi.'); return; }
+                    // Create minimal user record
+                    users[username] = {
+                        name: username,
+                        company: '',
+                        username: username,
+                        password_enc: btoa(newPass),
+                        created_at: new Date().toISOString()
+                    };
+                    localStorage.setItem('qp_user_records', JSON.stringify(users));
+                    user = users[username];
+                    alert('Hisob tiklandi. Endi kiring.');
+                } else {
+                    alert('Foydalanuvchi topilmadi. Iltimos roʻyxatdan oʻting.');
+                    return;
+                }
+            }
             try {
                 if (user.password_enc !== btoa(password) || (company && user.company !== company)) {
                     alert('Login yoki parol notoʻgʻri.');

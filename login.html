@@ -93,6 +93,9 @@
             </div>
             <button type="submit" class="login-btn">Tizimga Kirish</button>
         </form>
+        <div style="margin-top: 16px; display:flex; gap:10px; justify-content:center;">
+            <button id="goto-register" class="login-btn" style="background:transparent; border:1px solid rgba(255,255,255,0.08);">Ro'yxatdan o'tish</button>
+        </div>
     </div>
 
     <script>
@@ -124,6 +127,11 @@
             // Redirect to dashboard
             window.location.href = 'index.html';
         });
+
+        // Register button
+        const rBtn = document.getElementById('goto-register');
+        
+        if (rBtn) rBtn.addEventListener('click', () => { window.location.href = 'register.html'; });
     </script>
 </body>
 </html>

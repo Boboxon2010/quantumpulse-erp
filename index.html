@@ -4,6 +4,9 @@
     <script>
         // Inline blocking script - runs immediately before any DOM/CSS parsing
         try {
+            // Hide the page until we validate auth to avoid flash-of-unauthorized-content
+            try { document.documentElement.style.visibility = 'hidden'; } catch (e) {}
+
             // Allow the auth pages themselves (login/register) to load without redirect
             const path = window.location.pathname || '';
             const filename = path.substring(path.lastIndexOf('/') + 1).toLowerCase();
@@ -12,11 +15,17 @@
                     // stop further loading and redirect to login without leaving cached bits visible
                     window.stop();
                     window.location.replace('login.html');
+                } else {
+                    // Authenticated -> show the page
+                    try { document.documentElement.style.visibility = 'visible'; } catch (e) {}
                 }
             } else {
                 // If already logged in and user opens auth page, send them to index
                 if (localStorage.getItem('qp_active_workspace') && filename === 'login.html') {
                     window.location.replace('index.html');
+                } else {
+                    // On auth pages and not authenticated -> show auth UI
+                    try { document.documentElement.style.visibility = 'visible'; } catch (e) {}
                 }
             }
         } catch (e) {

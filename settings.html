@@ -3,16 +3,21 @@
 <head>
     <script>
         try {
+            try { document.documentElement.style.visibility = 'hidden'; } catch (e) {}
             const path = window.location.pathname || '';
             const filename = path.substring(path.lastIndexOf('/') + 1).toLowerCase();
             if (filename !== 'login.html' && filename !== 'register.html') {
                 if (!localStorage.getItem('qp_active_workspace')) {
                     window.stop();
                     window.location.replace('login.html');
+                } else {
+                    try { document.documentElement.style.visibility = 'visible'; } catch (e) {}
                 }
             } else {
                 if (localStorage.getItem('qp_active_workspace') && filename === 'login.html') {
                     window.location.replace('index.html');
+                } else {
+                    try { document.documentElement.style.visibility = 'visible'; } catch (e) {}
                 }
             }
         } catch (e) { try { window.stop(); window.location.replace('login.html'); } catch (e) {} }

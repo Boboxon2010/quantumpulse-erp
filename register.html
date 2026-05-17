@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
+    <script>
+        // If user already authenticated, don't show register page - send to main dashboard
+        try {
+            if (localStorage.getItem('qp_active_workspace')) {
+                window.location.replace('index.html');
+            }
+        } catch (e) { /* ignore */ }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuantumPulse | Ro'yxatdan O'tish</title>

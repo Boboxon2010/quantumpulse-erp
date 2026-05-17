@@ -1,6 +1,29 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
+    <script>
+        // Inline blocking script - runs immediately before any DOM/CSS parsing
+        try {
+            // Allow the auth pages themselves (login/register) to load without redirect
+            const path = window.location.pathname || '';
+            const filename = path.substring(path.lastIndexOf('/') + 1).toLowerCase();
+            if (filename !== 'login.html' && filename !== 'register.html') {
+                if (!localStorage.getItem('qp_active_workspace')) {
+                    // stop further loading and redirect to login without leaving cached bits visible
+                    window.stop();
+                    window.location.replace('login.html');
+                }
+            } else {
+                // If already logged in and user opens auth page, send them to index
+                if (localStorage.getItem('qp_active_workspace') && filename === 'login.html') {
+                    window.location.replace('index.html');
+                }
+            }
+        } catch (e) {
+            // If any error happens during inline check, fail closed by redirecting to login
+            try { window.stop(); window.location.replace('login.html'); } catch (e) { /* ignore */ }
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuantumPulse | Core Dashboard</title>

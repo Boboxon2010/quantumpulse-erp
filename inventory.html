@@ -30,17 +30,115 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
-        .inv-card { padding: 20px; position: relative; border-left: 4px solid var(--neon-purple); }
+        /* ⚡ ZOOM VA RESPONSIVE BREAKING FIXES */
+        body {
+            background: #060b19;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* Konteyner siqilib ketmasligi uchun dinamik flex */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Sidebar qattiq o'lchami */
+        .sidebar {
+            width: 260px;
+            min-width: 260px;
+            box-sizing: border-box;
+        }
+
+        /* Asosiy panel zoom qilinganda o'ngga qarab cheksiz chiqib ketishini to'xtatadi */
+        .main-content {
+            flex-grow: 1;
+            min-width: 0; 
+            padding: 25px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Navbar elementlari sig'ishi uchun auto-wrap */
+        .top-navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap; /* Kichik ekranda pastga chiroyli tushishi uchun */
+            padding: 15px 20px;
+            box-sizing: border-box;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            min-width: 200px;
+            max-width: 400px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            background: none;
+            border: none;
+            color: #fff;
+            outline: none;
+            margin-left: 10px;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-wrapper {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* 📊 ADAPTIVE MULTI-COLUMN GRID TIZIMI */
+        .inv-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Zoom bo'lganda ustunlar sonini avtomat kamaytiradi */
+            gap: 20px; 
+            margin-top: 20px; 
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .inv-card { 
+            padding: 20px; 
+            position: relative; 
+            border-left: 4px solid var(--neon-purple); 
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 180px;
+        }
+        
         .inv-card.alert { border-left-color: #ff4b4b; box-shadow: 0 0 15px rgba(255, 75, 75, 0.1); }
-        .inv-card h3 { font-size: 16px; margin-bottom: 10px; }
-        .inv-meta { display: flex; justify-content: space-between; margin-top: 15px; font-size: 14px; }
-        .inv-qty { font-family: var(--font-heading); font-size: 20px; color: var(--neon-cyan); }
+        .inv-card h3 { font-size: 16px; margin: 5px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .inv-meta { display: flex; justify-content: space-between; align-items: center; margin-top: auto; font-size: 14px; gap: 10px; }
+        .inv-qty { font-family: var(--font-heading); font-size: 18px; color: var(--neon-cyan); }
         .inv-card.alert .inv-qty { color: #ff4b4b; }
         .inv-actions { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; }
-        .inv-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.3s; }
+        .inv-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.3s; flex: 1; text-align: center; }
         .inv-btn:hover { background: var(--neon-cyan); color: #000; border-color: var(--neon-cyan); }
         .inv-btn.btn-delete:hover { background: #ff4b4b; color: #fff; border-color: #ff4b4b; }
+
+        /* Telefon yoki haddan tashqari katta zoom holati uchun */
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; }
+            .sidebar { width: 100%; min-width: 100%; border-right: none; border-bottom: 1px solid rgba(0, 242, 254, 0.15); }
+            .main-content { padding: 15px; }
+        }
     </style>
 </head>
 <body>
@@ -63,10 +161,13 @@
 
         <main class="main-content">
             <header class="top-navbar glass-panel">
-                <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="search-input" placeholder="Ombordan tovar qidirish..."></div>
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="search-input" placeholder="Ombordan tovar qidirish...">
+                </div>
                 <div class="top-actions">
-                    <button class="glass-panel" id="sync-force-btn" style="padding: 10px 15px; color: #fff; cursor: pointer; background: rgba(0,242,254,0.05); border-radius: 8px; margin-right: 10px; border: 1px solid var(--neon-cyan);"><i class="fa-solid fa-rotate"></i> Yangilash</button>
-                    <button class="glass-panel" id="add-stock-btn" style="padding: 10px 20px; color: #fff; cursor: pointer; background: rgba(0,242,254,0.1); border-radius: 8px;"><i class="fa-solid fa-plus"></i> Yangi Tovar</button>
+                    <button class="glass-panel" id="sync-force-btn" style="padding: 10px 15px; color: #fff; cursor: pointer; background: rgba(0,242,254,0.05); border-radius: 8px; border: 1px solid var(--neon-cyan);"><i class="fa-solid fa-rotate"></i> Yangilash</button>
+                    <button class="glass-panel" id="add-stock-btn" style="padding: 10px 20px; color: #fff; cursor: pointer; background: rgba(0,242,254,0.1); border-radius: 8px; border: 1px solid rgba(0,242,254,0.2);"><i class="fa-solid fa-plus"></i> Yangi Tovar</button>
                 </div>
             </header>
 
@@ -89,9 +190,8 @@
             const container = document.getElementById('inventory-container');
             const searchInput = document.getElementById('search-input');
 
-            // 1. MA'LUMOTLARNI BRAUZER VA CLOUDDAN YUKLASH
+            // 1. DATA LOADER
             function loadAndRender() {
-                // Avval mahalliy keshni tekshiramiz
                 if (typeof ERPStorage !== 'undefined' && typeof ERPStorage.getInventory === 'function') {
                     inventory = ERPStorage.getInventory();
                 } else {
@@ -100,7 +200,7 @@
                 renderInventory(inventory);
             }
 
-            // 2. RENDERING ENGINE (Tovarlarni ekranga chizish + Formatlash)
+            // 2. RENDERING ENGINE
             function renderInventory(itemsToRender) {
                 container.innerHTML = "";
                 if(itemsToRender.length === 0) {
@@ -110,31 +210,31 @@
 
                 itemsToRender.forEach((item, index) => {
                     let isAlert = item.qty <= 15;
-                    // Global valyuta formati (app.js dagi funksiya) yoki standart format
                     const displayPrice = typeof window.formatCurrency === 'function' ? window.formatCurrency(item.price) : `$${item.price}`;
                     
                     container.innerHTML += `
                         <div class="inv-card glass-panel ${isAlert ? 'alert' : ''}">
-                            <span style="font-size: 11px; color: var(--text-muted); font-family: var(--font-heading);">${item.id || 'INV-'+(index+1)}</span>
-                            <h3 style="margin-top: 5px;">${item.name}</h3>
-                            <p style="font-size: 13px; color: var(--text-muted);">${item.category || 'Kategoriya yo\'q'}</p>
+                            <div>
+                                <span style="font-size: 11px; color: var(--text-muted); font-family: var(--font-heading);">${item.id || 'INV-'+(index+1)}</span>
+                                <h3 style="margin-top: 5px;" title="${item.name}">${item.name}</h3>
+                                <p style="font-size: 13px; color: var(--text-muted); margin: 5px 0;">${item.category || 'Kategoriya yo\'q'}</p>
+                            </div>
                             <div class="inv-meta">
                                 <div>Soni: <span class="inv-qty">${item.qty} ta</span></div>
                                 <div style="font-weight: 600; color: #00e676; font-size: 16px;">${displayPrice}</div>
                             </div>
                             <div class="inv-actions">
                                 <button class="inv-btn" onclick="editQty('${item.id || index}')"><i class="fa-solid fa-pen"></i> Soni</button>
-                                <button class="inv-btn btn-delete" onclick="deleteItem('${item.id || index}')"><i class="fa-solid fa-trash"></i> Ochirish</button>
+                                <button class="inv-btn btn-delete" onclick="deleteItem('${item.id || index}')"><i class="fa-solid fa-trash"></i> O'chirish</button>
                             </div>
                         </div>
                     `;
                 });
             }
 
-            // 3. BULUTGA SAQLASH VA SINXRONLASHTIRISH
+            // 3. CLOUD SYNC BRIDGE
             function saveState() {
                 if (typeof window.saveAndCloudSync === 'function') {
-                    // Global sinxronizator (Lokalga saqlaydi + GitHub-ga PUT so'rov yuboradi)
                     window.saveAndCloudSync('qp_inventory', inventory);
                 } else {
                     localStorage.setItem('qp_inventory', JSON.stringify(inventory));
@@ -145,7 +245,7 @@
                 renderInventory(inventory);
             }
 
-            // 4. TOVAR QO'SHISH FUNKSIYASI
+            // 4. ADD ITEM
             document.getElementById('add-stock-btn').addEventListener('click', () => {
                 const name = prompt("Yangi mahsulot nomini kiriting:");
                 if(!name) return;
@@ -159,7 +259,7 @@
                 const category = prompt("Kategoriyasini kiriting:", "Tayyor Mahsulotlar") || "Tayyor Mahsulotlar";
 
                 const newItem = {
-                    id: "INV-" + Date.now().toString().slice(-4), // Unikal ID generatsiya
+                    id: "INV-" + Date.now().toString().slice(-4),
                     name: name,
                     category: category,
                     qty: parseInt(qty),
@@ -171,7 +271,7 @@
                 saveState();
             });
 
-            // 5. TAHRIRLASH VA O'CHIRISH (Global oyna elementlari uchun funksiyalar)
+            // 5. UPDATE & DELETE
             window.editQty = function(id) {
                 const item = inventory.find(i => i.id === id || inventory.indexOf(i) == id);
                 if(!item) return;
@@ -194,7 +294,7 @@
                 }
             };
 
-            // 6. REAL-TIME SEARCH (Qidiruv tizimi)
+            // 6. SEARCH MECHANISM
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase().trim();
                 const filtered = inventory.filter(item => 
@@ -205,20 +305,21 @@
                 renderInventory(filtered);
             });
 
-            // 7. MAJBURIY BULUTDAN RE-FETCH QILISH TUGMASI
+            // 7. FORCE REFETCH DRIVER
             document.getElementById('sync-force-btn').addEventListener('click', async () => {
                 if(typeof window.loadDataFromGitHub === 'function') {
                     await window.loadDataFromGitHub();
-                    setTimeout(loadAndRender, 1500); // Ma'lumot kelgach qayta chizish
+                    setTimeout(loadAndRender, 1500);
                 } else {
                     loadAndRender();
                 }
             });
 
-            // Birinchi marta ochilganda ishga tushirish
-            loadAndRender();
+            // Avtomat hodisalarni tinglash (Boshqa sahifada o'zgarsa srazi yangilanishi uchun)
+            window.addEventListener('local_data_changed', loadAndRender);
 
-            // Agar uzoqdan ma'lumot yuklansa, avtomat ekranda aks etishi uchun taymer
+            // Tizimni yondirish
+            loadAndRender();
             setTimeout(loadAndRender, 2500);
         });
     </script>

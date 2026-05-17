@@ -10,14 +10,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .fin-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; margin-bottom: 30px; }
-        .fin-box { padding: 30px; text-align: center; }
-        .fin-box h2 { font-size: 36px; font-family: var(--font-heading); margin-top: 10px; }
-        .tx-list { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
-        .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); }
+        .fin-box { padding: 30px; text-align: center; position: relative; }
+        .fin-box h2 { font-size: 32px; font-family: var(--font-heading); margin-top: 10px; }
+        .tx-list { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
+        .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); transition: transform 0.2s; }
+        .tx-item:hover { transform: translateX(5px); background: rgba(255,255,255,0.04); }
         .tx-type { display: flex; align-items: center; gap: 15px; }
-        .tx-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .tx-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .tx-icon.in { background: rgba(0, 230, 118, 0.1); color: var(--neon-green); }
         .tx-icon.out { background: rgba(255, 75, 75, 0.1); color: #ff4b4b; }
+        .fin-actions-bar { display: flex; gap: 10px; }
+        .tx-del-btn { background: none; border: none; color: rgba(255,255,255,0.2); cursor: pointer; font-size: 14px; transition: color 0.2s; padding-left: 15px; }
+        .tx-del-btn:hover { color: #ff4b4b; }
     </style>
 </head>
 <body>
@@ -40,64 +44,187 @@
 
         <main class="main-content">
             <header class="top-navbar glass-panel">
-                <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Tranzaksiyalardan qidirish..."></div>
-                <div class="top-actions"><div class="system-time" id="live-time">00:00:00</div></div>
+                <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="tx-search" placeholder="Tranzaksiyalardan qidirish..."></div>
+                <div class="top-actions">
+                    <button class="glass-panel" id="fin-sync-btn" style="padding: 10px 15px; color: #fff; cursor: pointer; background: rgba(0,242,254,0.05); border-radius: 8px; margin-right: 10px; border: 1px solid var(--neon-cyan);"><i class="fa-solid fa-rotate"></i> Sync Balance</button>
+                    <div class="fin-actions-bar">
+                        <button class="glass-panel" id="add-income-btn" style="padding: 10px 15px; color: #fff; cursor: pointer; background: rgba(0, 230, 118, 0.1); border: 1px solid var(--neon-green); border-radius: 8px;"><i class="fa-solid fa-arrow-trend-up"></i> Kirim</button>
+                        <button class="glass-panel" id="add-expense-btn" style="padding: 10px 15px; color: #fff; cursor: pointer; background: rgba(255, 75, 75, 0.1); border: 1px solid #ff4b4b; border-radius: 8px;"><i class="fa-solid fa-arrow-trend-down"></i> Chiqim</button>
+                    </div>
+                </div>
             </header>
 
             <div class="dashboard-wrapper">
                 <div class="welcome-section">
                     <h1>Apex <span>FinTech Balance</span></h1>
-                    <p>Kompaniyaning real vaqtdagi moliya balansi va pul oqimi hisoboti.</p>
+                    <p>Cloud-Sync: Kompaniyaning real vaqtdagi moliya balansi va pul oqimi hisoboti.</p>
                 </div>
 
                 <div class="fin-summary-grid">
                     <div class="fin-box glass-panel" style="border-color: rgba(0, 230, 118, 0.3);">
-                        <span style="color: var(--text-muted); font-size: 14px;">Umumiy Daromad</span>
-                        <h2 style="color: var(--neon-green); font-weight: 800;">$452,180</h2>
+                        <span style="color: var(--text-muted); font-size: 14px;">Umumiy Daromad (Kirim)</span>
+                        <h2 id="total-income-display" style="color: var(--neon-green); font-weight: 800;">$0</h2>
                     </div>
                     <div class="fin-box glass-panel" style="border-color: rgba(255, 75, 75, 0.3);">
-                        <span style="color: var(--text-muted); font-size: 14px;">Operatsion Xarajatlar</span>
-                        <h2 style="color: #ff4b4b; font-weight: 800;">$128,400</h2>
+                        <span style="color: var(--text-muted); font-size: 14px;">Operatsion Xarajatlar (Chiqim)</span>
+                        <h2 id="total-expense-display" style="color: #ff4b4b; font-weight: 800;">$0</h2>
                     </div>
                 </div>
 
                 <div class="glass-panel" style="padding: 25px;">
                     <h3>Oxirgi Tranzaksiyalar</h3>
-                    <div class="tx-list">
-                        <div class="tx-item">
-                            <div class="tx-type">
-                                <div class="tx-icon in"><i class="fa-solid fa-arrow-down"></i></div>
-                                <div>
-                                    <h4 style="font-size: 15px;">API litsenziya sotuvi</h4>
-                                    <p style="font-size: 12px; color: var(--text-muted);">Mijoz: Alisher Nazarov</p>
-                                </div>
-                            </div>
-                            <span style="font-family: var(--font-heading); color: var(--neon-green); font-weight: 600;">+$1,200</span>
-                        </div>
-                        <div class="tx-item">
-                            <div class="tx-type">
-                                <div class="tx-icon out"><i class="fa-solid fa-arrow-up"></i></div>
-                                <div>
-                                    <h4 style="font-size: 15px;">Server bulutli hosting to'lovi</h4>
-                                    <p style="font-size: 12px; color: var(--text-muted);">AWS Enterprise Edge</p>
-                                </div>
-                            </div>
-                            <span style="font-family: var(--font-heading); color: #ff4b4b; font-weight: 600;">-$450</span>
-                        </div>
-                    </div>
+                    <div class="tx-list" id="transactions-container"></div>
                 </div>
             </div>
         </main>
     </div>
 
+    <script src="js/app.js"></script>
+    <script src="js/storage.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Tizim valyutasi bo'yicha narxlarni avtomat o'zgartirish
-            const incomeValue = 452180;
-            const expenseValue = 128400;
+            let transactions = [];
+            const container = document.getElementById('transactions-container');
+            const incomeDisplay = document.getElementById('total-income-display');
+            const expenseDisplay = document.getElementById('total-expense-display');
 
-            document.querySelector('.fin-box.glass-panel:nth-child(1) h2').textContent = window.formatCurrency(incomeValue);
-            document.querySelector('.fin-box.glass-panel:nth-child(2) h2').textContent = window.formatCurrency(expenseValue);
+            // Baseline mockup ma'lumotlar (Baza bo'sh bo'lgan holat uchun)
+            const defaultTx = [
+                { id: "TX-9901", title: "API litsenziya sotuvi", desc: "Mijoz: Alisher Nazarov", amount: 1200, type: "in", date: new Date().toLocaleDateString() },
+                { id: "TX-9902", title: "Server bulutli hosting to'lovi", desc: "AWS Enterprise Edge", amount: 450, type: "out", date: new Date().toLocaleDateString() }
+            ];
+
+            // 1. FINANSE MA'LUMOTLARINI YUKLASH
+            function loadFinanceData() {
+                const stored = localStorage.getItem('qp_transactions');
+                if (stored) {
+                    transactions = JSON.parse(stored);
+                } else {
+                    transactions = defaultTx;
+                    localStorage.setItem('qp_transactions', JSON.stringify(transactions));
+                }
+                calculateAndRender();
+            }
+
+            // 2. MOLIYAWIY BALANS HISOBLASH VA RENDERING
+            function calculateAndRender(itemsToRender = transactions) {
+                container.innerHTML = "";
+                let totalIncome = 0;
+                let totalExpense = 0;
+
+                // Umumiy moliya hajmini hisoblash
+                transactions.forEach(tx => {
+                    if (tx.type === 'in') totalIncome += tx.amount;
+                    if (tx.type === 'out') totalExpense += tx.amount;
+                });
+
+                // Formatlash mexanizmini tekshirish
+                const formatter = typeof window.formatCurrency === 'function' ? window.formatCurrency : (val) => `$${val.toLocaleString()}`;
+                
+                incomeDisplay.textContent = formatter(totalIncome);
+                expenseDisplay.textContent = formatter(totalExpense);
+
+                if(itemsToRender.length === 0) {
+                    container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">Tranzaksiyalar tarixi mavjud emas.</div>`;
+                    return;
+                }
+
+                itemsToRender.forEach((tx, idx) => {
+                    const sign = tx.type === 'in' ? '+' : '-';
+                    const colorClass = tx.type === 'in' ? 'var(--neon-green)' : '#ff4b4b';
+                    
+                    container.innerHTML += `
+                        <div class="tx-item">
+                            <div class="tx-type">
+                                <div class="tx-icon ${tx.type}"><i class="fa-solid ${tx.type === 'in' ? 'fa-arrow-down' : 'fa-arrow-up'}"></i></div>
+                                <div>
+                                    <h4 style="font-size: 15px;">${tx.title}</h4>
+                                    <p style="font-size: 12px; color: var(--text-muted);">${tx.desc || ''} | <small>${tx.date || ''}</small></p>
+                                </div>
+                            </div>
+                            <div style="display:flex; align-items:center;">
+                                <span style="font-family: var(--font-heading); color: ${colorClass}; font-weight: 600;">${sign}${formatter(tx.amount)}</span>
+                                <button class="tx-del-btn" onclick="deleteTransaction('${tx.id || idx}')" title="O'chirish"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // 3. AMALLARNI CLOUD BILAN SINXRONLASH
+            function saveFinanceState() {
+                localStorage.setItem('qp_transactions', JSON.stringify(transactions));
+                if (typeof window.saveAndCloudSync === 'function') {
+                    // Global bulutli ob'ektga finance oqimini ham qo'shamiz
+                    window.saveAndCloudSync('qp_transactions', transactions);
+                }
+                calculateAndRender();
+            }
+
+            // 4. TRANZAKSIYA QO'SHISH MEXANIZMI
+            window.createNewTransaction = function(type) {
+                const title = prompt(type === 'in' ? "Kirim manbasini yozing:" : "Chiqim yo'nalishini yozing:");
+                if(!title) return;
+
+                const amount = prompt("Tranzaksiya summasini kiriting ($):");
+                if(!amount || isNaN(amount) || parseFloat(amount) <= 0) { alert("Xato summa!"); return; }
+
+                const desc = prompt("Batafsil izoh (Mijoz yoki Kontragent):") || "";
+
+                const newTx = {
+                    id: "TX-" + Date.now().toString().slice(-4),
+                    title: title,
+                    desc: desc,
+                    amount: parseFloat(amount),
+                    type: type,
+                    date: new Date().toLocaleDateString()
+                };
+
+                transactions.unshift(newTx);
+                if(typeof window.logSystemActivity === 'function') {
+                    window.logSystemActivity(`Moliya: Yangi ${type === 'in' ? 'Kirim' : 'Chiqim'} qo'shildi ($${amount})`);
+                }
+                saveFinanceState();
+            };
+
+            document.getElementById('add-income-btn').addEventListener('click', () => createNewTransaction('in'));
+            document.getElementById('add-expense-btn').addEventListener('click', () => createNewTransaction('out'));
+
+            // 5. TRANZAKSIYANI O'CHIRISH
+            window.deleteTransaction = function(id) {
+                if(confirm("Ushbu moliya amalini o'chirib tashlamoqchimisiz?")) {
+                    const idx = transactions.findIndex(tx => tx.id === id || transactions.indexOf(tx) == id);
+                    if(idx > -1) {
+                        transactions.splice(idx, 1);
+                        saveFinanceState();
+                    }
+                }
+            };
+
+            // 6. QIDIRUV ENGINE
+            document.getElementById('tx-search').addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                const filtered = transactions.filter(tx => 
+                    tx.title.toLowerCase().includes(query) || 
+                    (tx.desc && tx.desc.toLowerCase().includes(query)) ||
+                    tx.id.toLowerCase().includes(query)
+                );
+                calculateAndRender(filtered);
+            });
+
+            // 7. SYNC TUGMASI
+            document.getElementById('fin-sync-btn').addEventListener('click', async () => {
+                if(typeof window.loadDataFromGitHub === 'function') {
+                    await window.loadDataFromGitHub();
+                    setTimeout(loadFinanceData, 1500);
+                } else {
+                    loadFinanceData();
+                }
+            });
+
+            // Drayverni yoqish
+            loadFinanceData();
+            setTimeout(loadFinanceData, 2500);
         });
     </script>
 </body>

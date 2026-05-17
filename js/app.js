@@ -109,11 +109,11 @@ window.loadDataFromGitHub = async function() {
                 window.dispatchEvent(new Event('storage_logs_updated'));
                 return db;
             } else {
-                // Agar yangi workspace bo'lsa va ichi bo'sh bo'lsa, eski qoldiqlarni tozalaymiz
-                localStorage.removeItem('qp_inventory');
-                localStorage.removeItem('qp_customers');
-                localStorage.removeItem('qp_transactions');
+                // If the workspace DB is empty on the server, do NOT remove the user's local cache.
+                // Removing local cache causes brief flashes where seeded or cached inventory disappears.
+                // Keep localStorage as the source until the server has actual data to overwrite it.
                 window.dispatchEvent(new Event('local_data_changed'));
+                window.dispatchEvent(new Event('storage_logs_updated'));
             }
         }
     } catch (err) {

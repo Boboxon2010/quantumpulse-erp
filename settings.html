@@ -121,6 +121,7 @@
                         <div style="display:flex; gap:10px; margin-bottom:15px;">
                             <button class="btn-action" id="btn-export" style="background:rgba(0,242,254,0.1); color:var(--neon-cyan); border:1px solid var(--neon-cyan);"><i class="fa-solid fa-download"></i> Backup .JSON</button>
                             <button class="btn-action" onclick="document.getElementById('import-file').click()" style="background:rgba(79,172,254,0.1); color:#4facfe; border:1px solid #4facfe;"><i class="fa-solid fa-upload"></i> Restore Data</button>
+                            <button class="btn-action" id="btn-rebuild" style="background:rgba(255,165,0,0.08); color:#ffb347; border:1px solid #ffb347;"><i class="fa-solid fa-sitemap"></i> Rebuild per-user Storage</button>
                             <input type="file" id="import-file" style="display:none" accept=".json">
                         </div>
                         <div style="display:flex; gap:10px;">
@@ -173,10 +174,11 @@
 
             // BACKUP EXPORT (.json)
             document.getElementById('btn-export').addEventListener('click', () => {
+                const username = localStorage.getItem('qp_username') || null;
                 const dump = {
                     auth: localStorage.getItem('qp_auth_config'),
-                    crm: localStorage.getItem('qp_customers'),
-                    inventory: localStorage.getItem('qp_inventory')
+                    crm: (typeof ERPStorage !== 'undefined' && username) ? (JSON.stringify(ERPStorage.getCustomers())) : localStorage.getItem('qp_customers'),
+                    inventory: (typeof ERPStorage !== 'undefined' && username) ? (JSON.stringify(ERPStorage.getInventory())) : localStorage.getItem('qp_inventory')
                 };
                 const blob = new Blob([JSON.stringify(dump)], {type: "application/json"});
                 const a = document.createElement('a');
@@ -193,16 +195,47 @@
                 const reader = new FileReader();
                 reader.onload = function(evt) {
                     try {
-                        const data = JSON.parse(evt.target.result);
-                        if(data.auth) localStorage.setItem('qp_auth_config', data.auth);
-                        if(data.crm) localStorage.setItem('qp_customers', data.crm);
-                        if(data.inventory) localStorage.setItem('qp_inventory', data.inventory);
-                        window.logSystemActivity("Tizim bazasi zaxira faylidan tiklandi");
-                        alert("🎉 Ma'lumotlar muvaffaqiyatli tiklandi! Tizim qayta yuklanadi.");
-                        location.reload();
-                    } catch(err) { alert("❌ Xato! Fayl formati yaroqsiz."); }
+                            const data = JSON.parse(evt.target.result);
+                            if(data.auth) localStorage.setItem('qp_auth_config', data.auth);
+                            const username = localStorage.getItem('qp_username') || null;
+                            if(data.crm) {
+                                if (username && typeof ERPStorage !== 'undefined' && typeof ERPStorage.saveCustomers === 'function') {
+                                    ERPStorage.saveCustomers(JSON.parse(data.crm));
+                                } else {
+                                    localStorage.setItem('qp_customers', data.crm);
+                                }
+                            }
+                            if(data.inventory) {
+                                if (username && typeof ERPStorage !== 'undefined' && typeof ERPStorage.saveInventory === 'function') {
+                                    ERPStorage.saveInventory(JSON.parse(data.inventory));
+                                } else {
+                                    localStorage.setItem('qp_inventory', data.inventory);
+                                }
+                            }
+                            window.logSystemActivity("Tizim bazasi zaxira faylidan tiklandi");
+                            alert("🎉 Ma'lumotlar muvaffaqiyatli tiklandi! Tizim qayta yuklanadi.");
+                            location.reload();
+                        } catch(err) { alert("❌ Xato! Fayl formati yaroqsiz."); }
                 };
                 reader.readAsText(file);
+            });
+
+            // REBUILD PER-USER STORAGE (Create per-user namespaces and remove global keys)
+            document.getElementById('btn-rebuild').addEventListener('click', () => {
+                if (!confirm('⚠️ Bu amal global ma\'lumotlar bazasini tozalaydi va har bir foydalanuvchi uchun alohida joy yaratadi. Davom etilsinmi?')) return;
+                const users = JSON.parse(localStorage.getItem('qp_user_records') || '{}');
+                // Create per-user empty storages, or migrate existing global data into each user as empty
+                Object.keys(users).forEach(u => {
+                    if (!localStorage.getItem(`qp_inventory::${u}`)) localStorage.setItem(`qp_inventory::${u}`, JSON.stringify([]));
+                    if (!localStorage.getItem(`qp_customers::${u}`)) localStorage.setItem(`qp_customers::${u}`, JSON.stringify([]));
+                });
+                // Remove global keys
+                localStorage.removeItem('qp_inventory');
+                localStorage.removeItem('qp_customers');
+                localStorage.removeItem('qp_transactions');
+                window.logSystemActivity('Global storage rebuilt into per-user namespaces');
+                alert('✅ Rebuild tugadi. Har bir foydalanuvchi uchun ajratilgan saqlash yaratildi.');
+                location.reload();
             });
 
             // FACTORY RESET

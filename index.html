@@ -123,9 +123,15 @@
             
             // 1. DYNAMIC RE-CALCULATION ENGINE
             function calculateSystemMetrics() {
-                // Ma'lumotlarni o'qish
-                const inventory = JSON.parse(localStorage.getItem('qp_inventory')) || [];
-                const customers = JSON.parse(localStorage.getItem('qp_customers')) || [];
+                // Ma'lumotlarni o'qish (use per-user storages, fall back to defaults)
+                const userInventory = (typeof ERPStorage !== 'undefined' && typeof ERPStorage.getInventory === 'function') ? ERPStorage.getInventory() : (JSON.parse(localStorage.getItem('qp_inventory')) || []);
+                const defaultsInventory = (typeof ERPStorage !== 'undefined' && typeof ERPStorage.getDefaults === 'function') ? ERPStorage.getDefaults('inventory') || [] : (JSON.parse(localStorage.getItem('qp_defaults_inventory') || '[]'));
+                const inventory = (userInventory && userInventory.length > 0) ? userInventory : defaultsInventory;
+
+                const userCustomers = (typeof ERPStorage !== 'undefined' && typeof ERPStorage.getCustomers === 'function') ? ERPStorage.getCustomers() : (JSON.parse(localStorage.getItem('qp_customers')) || []);
+                const defaultsCustomers = (typeof ERPStorage !== 'undefined' && typeof ERPStorage.getDefaults === 'function') ? ERPStorage.getDefaults('customers') || [] : (JSON.parse(localStorage.getItem('qp_defaults_customers') || '[]'));
+                const customers = (userCustomers && userCustomers.length > 0) ? userCustomers : defaultsCustomers;
+
                 const transactions = JSON.parse(localStorage.getItem('qp_transactions')) || [];
                 const logs = JSON.parse(localStorage.getItem('qp_system_logs')) || ["[Tizim] Dvigatellar muvaffaqiyatli ulangan. Aloqa barqaror."];
 

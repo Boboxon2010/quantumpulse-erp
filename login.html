@@ -80,12 +80,16 @@
         
         <form id="login-form">
             <div class="input-group">
-                <i class="fa-solid fa-layer-group"></i>
-                <input type="text" id="workspace-input" placeholder="Ishchi maydoni (Workspace ID)..." required>
+                <i class="fa-solid fa-user-secret"></i>
+                <input type="text" id="username-input" placeholder="Foydalanuvchi nomi..." required>
             </div>
             <div class="input-group">
-                <i class="fa-solid fa-user"></i>
-                <input type="text" id="username-input" placeholder="Admin foydalanuvchi nomi..." required>
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" id="password-input" placeholder="Parol..." required>
+            </div>
+            <div class="input-group">
+                <i class="fa-solid fa-building"></i>
+                <input type="text" id="company-input" placeholder="Kompaniya nomi... (ixtiyoriy)">
             </div>
             <button type="submit" class="login-btn">Tizimga Kirish</button>
         </form>
@@ -94,22 +98,31 @@
     <script>
         document.getElementById('login-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const workspace = document.getElementById('workspace-input').value.trim().toLowerCase();
             const username = document.getElementById('username-input').value.trim();
+            const password = document.getElementById('password-input').value;
+            const company = document.getElementById('company-input').value.trim();
 
-            if(workspace && username) {
-                // Mahalliy xotiraga token sifatida yozamiz
-                localStorage.setItem('qp_active_workspace', workspace);
-                localStorage.setItem('qp_username', username);
-                
-                // Kirgandan keyin srazi eski keshni tozalab, yangi workspace ma'lumotini tortishi uchun
-                localStorage.removeItem('qp_inventory');
-                localStorage.removeItem('qp_customers');
-                localStorage.removeItem('qp_transactions');
+            const users = JSON.parse(localStorage.getItem('qp_user_records') || '{}');
+            if (!users[username]) { alert('Foydalanuvchi topilmadi. Iltimos roʻyxatdan oʻting.'); return; }
 
-                // Bosh sahifaga yo'naltiramiz
-                window.location.href = "index.html";
-            }
+            const user = users[username];
+            try {
+                if (user.password_enc !== btoa(password) || (company && user.company !== company)) {
+                    alert('Login yoki parol notoʻgʻri.');
+                    return;
+                }
+            } catch (err) { alert('Login jarayonida xatolik.'); return; }
+
+            // Authentication OK. Set active user workspace to username
+            localStorage.setItem('qp_active_workspace', username);
+            localStorage.setItem('qp_username', username);
+
+            // Ensure per-user storages exist; do not delete defaults
+            if (!localStorage.getItem(`qp_inventory::${username}`)) localStorage.setItem(`qp_inventory::${username}`, JSON.stringify([]));
+            if (!localStorage.getItem(`qp_customers::${username}`)) localStorage.setItem(`qp_customers::${username}`, JSON.stringify([]));
+
+            // Redirect to dashboard
+            window.location.href = 'index.html';
         });
     </script>
 </body>

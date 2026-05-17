@@ -192,11 +192,12 @@
 
             // 1. DATA LOADER
             function loadAndRender() {
-                if (typeof ERPStorage !== 'undefined' && typeof ERPStorage.getInventory === 'function') {
-                    inventory = ERPStorage.getInventory();
-                } else {
-                    inventory = JSON.parse(localStorage.getItem('qp_inventory')) || [];
-                }
+                // Load per-user inventory and global defaults
+                const userItems = (typeof ERPStorage !== 'undefined' && typeof ERPStorage.getInventory === 'function') ? ERPStorage.getInventory() : (JSON.parse(localStorage.getItem('qp_inventory')) || []);
+                const defaults = (typeof ERPStorage !== 'undefined' && typeof ERPStorage.getDefaults === 'function') ? ERPStorage.getDefaults('inventory') || [] : (JSON.parse(localStorage.getItem('qp_defaults_inventory') || '[]'));
+
+                // If user has their own items, show only them. Otherwise show defaults as initial view.
+                inventory = (userItems && userItems.length > 0) ? userItems.slice() : (defaults.slice());
                 renderInventory(inventory);
             }
 
@@ -234,14 +235,18 @@
 
             // 3. CLOUD SYNC BRIDGE
             function saveState() {
-                if (typeof window.saveAndCloudSync === 'function') {
-                    window.saveAndCloudSync('qp_inventory', inventory);
+                // Save to per-user storage via ERPStorage, and attempt cloud sync as before
+                if(typeof ERPStorage !== 'undefined' && typeof ERPStorage.saveInventory === 'function') {
+                    ERPStorage.saveInventory(inventory);
                 } else {
                     localStorage.setItem('qp_inventory', JSON.stringify(inventory));
-                    if(typeof ERPStorage !== 'undefined' && typeof ERPStorage.saveInventory === 'function') {
-                        ERPStorage.saveInventory(inventory);
-                    }
                 }
+
+                if (typeof window.saveAndCloudSync === 'function') {
+                    // still notify cloud (will write to the workspace path)
+                    window.saveAndCloudSync('qp_inventory', inventory);
+                }
+
                 renderInventory(inventory);
             }
 

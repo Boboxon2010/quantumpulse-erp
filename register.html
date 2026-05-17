@@ -60,20 +60,40 @@
 
     <script src="js/storage.js"></script>
     <script>
+        // Helper to get users map
+        function _getUserRecords() {
+            try { return JSON.parse(localStorage.getItem('qp_user_records') || '{}'); } catch (e) { return {}; }
+        }
+
+        function _saveUserRecords(map) { localStorage.setItem('qp_user_records', JSON.stringify(map)); }
+
         document.getElementById('register-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const config = {
-                name: document.getElementById('reg-name').value,
-                company: document.getElementById('reg-company').value,
-                username: document.getElementById('reg-username').value.trim(),
-                password: document.getElementById('reg-password').value,
-                themeCyan: "#00f2fe",
-                themePurple: "#4facfe",
-                blurAmount: "12px"
+            const name = document.getElementById('reg-name').value.trim();
+            const company = document.getElementById('reg-company').value.trim();
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value;
+            if (!username || !password) { alert('Username and password required'); return; }
+
+            const users = _getUserRecords();
+            if (users[username]) { alert('Ushbu login allaqachon mavjud. Iltimos boshqa nom tanlang.'); return; }
+
+            // Store user record. For now use a basic encoding for the password (not production-safe).
+            users[username] = {
+                name: name,
+                company: company,
+                username: username,
+                password_enc: btoa(password), // minimal obfuscation; recommend server-side hashing
+                created_at: new Date().toISOString()
             };
-            localStorage.setItem('qp_auth_config', JSON.stringify(config));
-            alert("🎉 Tizim muvaffaqiyatli sozlandi! Endi login orqali kiring.");
-            window.location.href = "login.html";
+
+            // Initialize per-user storage keys (empty inventory/customers)
+            localStorage.setItem(`qp_inventory::${username}`, JSON.stringify([]));
+            localStorage.setItem(`qp_customers::${username}`, JSON.stringify([]));
+
+            _saveUserRecords(users);
+            alert('🎉 Hisob muvaffaqiyatli yaratildi! Endi tizimga kirishingiz mumkin.');
+            window.location.href = 'login.html';
         });
     </script>
 </body>

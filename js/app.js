@@ -1,9 +1,8 @@
-// QuantumPulse - Enterprise Core Engine v3.0 (Ultimate Real-Time Cloud Sync Edition)
+// QuantumPulse - Enterprise Core Engine v4.0 (Zero-Token Ultra Secure Edition)
 
 const GH_CONFIG = {
     username: "Boboxon2010",
     repo: "quantumpulse-erp",
-    token: "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",
     filename: "database.json"
 };
 
@@ -14,24 +13,21 @@ const GH_CONFIG = {
     if (!localStorage.getItem('qp_auth_config') && !isAuthPage) { window.location.href = "register.html"; return; }
     if (!isLoggedIn && !isAuthPage) { window.location.href = "login.html"; return; }
 
-    // Inactivity Timeout (5 minut harakatsizlikdan keyin logout)
-    let timeoutTime;
-    function resetTimer() {
-        clearTimeout(timeoutTime);
-        timeoutTime = setTimeout(() => {
-            if (isLoggedIn && !isAuthPage) {
-                localStorage.removeItem('qp_is_logged_in');
-                alert("🔒 Xavfsizlik yuzasidan: Tizimda 5 daqiqa harakat bo'lmagani uchun sessiya yopildi.");
-                window.location.href = "login.html";
+    // 2. TOKEN CONTROLLER (Tokenni faqat foydalanuvchidan olish va tekshirish)
+    window.getGithubToken = function() {
+        let token = localStorage.getItem('qp_secure_gh_token');
+        if (!token && !isAuthPage) {
+            token = prompt("🔒 Tizim xavfsizligi: GitHub PAT (Personal Access Token) kiriting:\n(Bu kod GitHub-ga yuklanmaydi, faqat sizning brauzeringizda saqlanadi)");
+            if (token) {
+                localStorage.setItem('qp_secure_gh_token', token);
+            } else {
+                alert("Token kiritilmadi! Sinxronizatsiya ishlamasligi mumkin.");
             }
-        }, 300000);
-    }
-    if(!isAuthPage) {
-        window.onload = resetTimer; window.onmousemove = resetTimer; window.onmousedown = resetTimer;
-        window.onclick = resetTimer; window.onkeydown = resetTimer;
-    }
+        }
+        return token;
+    };
 
-    // 2. TOAST NOTIFICATION ENGINE
+    // 3. TOAST NOTIFICATION ENGINE
     window.showToast = function(message, type = 'success') {
         let container = document.getElementById('toast-container');
         if (!container) {
@@ -54,29 +50,18 @@ const GH_CONFIG = {
         }, 4000);
     };
 
-    // 3. GLOBAL LOGGERS & AUDIO
+    // 4. GLOBAL LOGGERS & AUDIO
     window.logSystemActivity = function(action) {
         let logs = JSON.parse(localStorage.getItem('qp_activity_logs')) || [];
         logs.unshift({ time: new Date().toLocaleTimeString() + " " + new Date().toLocaleDateString(), action });
         localStorage.setItem('qp_activity_logs', JSON.stringify(logs.slice(0, 50)));
     };
 
-    window.playSystemSound = function(type) {
-        const cfg = JSON.parse(localStorage.getItem('qp_auth_config'));
-        if (cfg && cfg.soundNotifications === false) return;
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.frequency.setValueAtTime(type === 'success' ? 880 : type === 'error' ? 220 : 550, ctx.currentTime);
-            gain.gain.setValueAtTime(0.04, ctx.currentTime);
-            osc.start(); osc.stop(ctx.currentTime + 0.08);
-        } catch(e){}
-    };
-
-    // 4. GLOBAL REAL-TIME CLOUD SYNC ENGINE (GitHub Database Connector)
+    // 5. GLOBAL REAL-TIME CLOUD SYNC ENGINE
     window.syncDataToGitHub = async function() {
+        const activeToken = window.getGithubToken();
+        if(!activeToken) { window.showToast("Sinxronizatsiya uchun token mavjud emas!", "error"); return; }
+        
         window.showToast("Cloud sinxronizatsiya boshlandi...", "info");
         
         const currentData = {
@@ -91,7 +76,7 @@ const GH_CONFIG = {
         try {
             let sha = "";
             const getRes = await fetch(url, {
-                headers: { "Authorization": `token ${GH_CONFIG.token}` }
+                headers: { "Authorization": `token ${activeToken}` }
             });
             
             if (getRes.status === 200) {
@@ -104,7 +89,7 @@ const GH_CONFIG = {
             const putRes = await fetch(url, {
                 method: "PUT",
                 headers: {
-                    "Authorization": `token ${GH_CONFIG.token}`,
+                    "Authorization": `token ${activeToken}`,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
@@ -122,15 +107,18 @@ const GH_CONFIG = {
             }
         } catch (error) {
             console.error(error);
-            window.showToast("Sinxronizatsiya muvaffaqiyatsiz yakunlandi", "error");
+            window.showToast("Sinxronizatsiya muvaffaqiyatsiz yakunlandi. Token noto'g'ri bo'lishi mumkin.", "error");
         }
     };
 
     window.loadDataFromGitHub = async function() {
+        const activeToken = window.getGithubToken();
+        if(!activeToken) return;
+
         const url = `https://api.github.com/repos/${GH_CONFIG.username}/${GH_CONFIG.repo}/contents/${GH_CONFIG.filename}`;
         try {
             const res = await fetch(url, {
-                headers: { "Authorization": `token ${GH_CONFIG.token}` }
+                headers: { "Authorization": `token ${activeToken}` }
             });
             if (res.status === 200) {
                 const fileData = await res.json();
@@ -147,56 +135,37 @@ const GH_CONFIG = {
         }
     };
 
-    // 5. GLOBAL INTERACTIVE WRAPPER (Boshqa sahifalar uchun oson funksiya)
     window.saveAndCloudSync = function(storageKey, dataArray) {
         localStorage.setItem(storageKey, JSON.stringify(dataArray));
         window.syncDataToGitHub();
     };
 
-    // CSS variables inject
     const config = JSON.parse(localStorage.getItem('qp_auth_config')) || {};
     document.documentElement.style.setProperty('--neon-cyan', config.themeCyan || '#00f2fe');
     document.documentElement.style.setProperty('--neon-purple', config.themePurple || '#4facfe');
-
-    window.onerror = function(msg, url, line) {
-        window.logSystemActivity(`⚠️ Xatolik: ${msg} (Satr: ${line})`);
-        return false;
-    };
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Bulutli bazani ochilishda yuklash
     window.loadDataFromGitHub();
 
     const config = JSON.parse(localStorage.getItem('qp_auth_config')) || {};
     
-    // Multi-Currency Converter
-    window.formatCurrency = function(amount) {
-        const curr = config.selectedCurrency || 'USD';
-        const rates = { 'USD': 1, 'UZS': 13000, 'EUR': 0.92 };
-        const converted = amount * rates[curr];
-        if(curr === 'UZS') return converted.toLocaleString('uz-UZ') + " UZS";
-        if(curr === 'EUR') return "€" + converted.toFixed(2);
-        return "$" + converted.toLocaleString();
-    };
-
-    // UI Clock
     const timeDisplay = document.getElementById('live-time');
     if (timeDisplay) {
         function updateTime() { timeDisplay.textContent = new Date().toTimeString().split(' ')[0]; }
         setInterval(updateTime, 1000); updateTime();
     }
 
-    // Ctrl + K Terminal Command Palette
+    // Ctrl + K Palette
     let paletteHTML = `
         <div id="command-palette" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,7,18,0.85); backdrop-filter:blur(10px); z-index:10000; display:none; justify-content:center; align-items:flex-start; padding-top:100px;">
-            <div class="glass-panel" style="width:100%; max-width:600px; padding:20px; border-radius:16px; box-shadow:0 20px 50px rgba(0,242,254,0.15); background:#0a0e23;">
+            <div class="glass-panel" style="width:100%; max-width:600px; padding:20px; border-radius:16px; background:#0a0e23;">
                 <div style="display:flex; align-items:center; gap:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:15px; margin-bottom:15px;">
                     <i class="fa-solid fa-terminal" style="color:var(--neon-cyan)"></i>
-                    <input type="text" id="palette-input" placeholder="Buyruqni kiriting... (/lock, /sync, /clear-logs, /help)" style="width:100%; background:none; border:none; outline:none; color:#fff; font-size:16px; font-family:monospace;">
+                    <input type="text" id="palette-input" placeholder="Buyruqni kiriting... (/lock, /sync, /update-token)" style="width:100%; background:none; border:none; outline:none; color:#fff; font-size:16px; font-family:monospace;">
                 </div>
-                <div id="palette-results" style="font-family:monospace; font-size:13px; color:#64748b; max-height:200px; overflow-y:auto; line-height:1.8;">
-                    Yordam uchun <b>/help</b> deb yozing. Chiqish uchun 'Esc' bosing.
+                <div id="palette-results" style="font-family:monospace; font-size:13px; color:#64748b;">
+                    Tokenni yangilash uchun <b>/update-token</b> deb yozing.
                 </div>
             </div>
         </div>
@@ -217,49 +186,11 @@ document.addEventListener('DOMContentLoaded', () => {
             paletteInput.value = "";
             if(cmd === '/lock') { palette.style.display = 'none'; window.triggerEmergencyLock(); }
             else if(cmd === '/sync') { palette.style.display = 'none'; window.syncDataToGitHub(); }
-            else if(cmd === '/clear-logs') { localStorage.removeItem('qp_activity_logs'); paletteResults.innerHTML = "Loglar o'chirildi."; }
-            else if(cmd === '/help') {
-                paletteResults.innerHTML = `/lock - Tizimni bloklash<br>/sync - GitHub buluti bilan majburiy sinxronlash<br>/clear-logs - Tarixni tozalash`;
-            } else { paletteResults.innerHTML = "Noma'lum buyruq."; }
+            else if(cmd === '/update-token') {
+                localStorage.removeItem('qp_secure_gh_token');
+                palette.style.display = 'none';
+                window.getGithubToken();
+            }
         }
     });
-
-    // Emergency Lock Screen (Kill-Switch)
-    window.triggerEmergencyLock = function() {
-        let lockOverlay = document.createElement('div');
-        lockOverlay.id = 'emergency-lock-screen';
-        lockOverlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:#050712; z-index:99999; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#fff; font-family:monospace;";
-        lockOverlay.innerHTML = `
-            <i class="fa-solid fa-shield-alert" style="font-size:70px; color:#ff4b4b; margin-bottom:20px;"></i>
-            <h1 style="color:#ff4b4b;">TIZIM MUZLATILDI</h1>
-            <input type="password" id="unlock-pass" placeholder="Parolni kiriting" style="padding:12px; background:rgba(255,255,255,0.05); border:1px solid #ff4b4b; border-radius:8px; color:#fff; text-align:center; outline:none; margin-top:15px;">
-            <button id="btn-unlock-sys" style="margin-top:15px; padding:10px 20px; background:#ff4b4b; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">TIZIMNI OCHISH</button>
-        `;
-        document.body.appendChild(lockOverlay);
-        document.getElementById('btn-unlock-sys').addEventListener('click', () => {
-            if(document.getElementById('unlock-pass').value === config.password) { lockOverlay.remove(); window.showToast("Tizim ochildi", "success"); }
-            else { alert("Xato!"); }
-        });
-    };
-
-    // Floating AI Chat Bot
-    let botHTML = `
-        <div id="ai-floating-bot" style="position:fixed; bottom:20px; right:20px; z-index:999; display:flex; flex-direction:column; align-items:flex-end;">
-            <div id="ai-chat-window" class="glass-panel" style="width:320px; height:400px; display:none; flex-direction:column; margin-bottom:15px; background:rgba(10,14,35,0.95); overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.5); border:1px solid var(--neon-cyan);">
-                <div style="background:rgba(0,242,254,0.1); padding:15px; font-weight:bold; color:var(--neon-cyan);"><i class="fa-solid fa-brain"></i> Quantum AI Agent</div>
-                <div id="chat-messages" style="flex:1; padding:15px; overflow-y:auto; font-size:13px; display:flex; flex-direction:column; gap:10px; color:#fff;">
-                    <div style="background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:8px; align-self:flex-start;">Tizim ma'lumotlari bulutli bazaga muvaffaqiyatli ulandi. Savolingiz bormi?</div>
-                </div>
-                <div style="padding:10px; display:flex; gap:8px; border-top:1px solid rgba(255,255,255,0.1);">
-                    <input type="text" id="chat-input" placeholder="AIdan so'rash..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#fff; padding:6px 10px; outline:none;">
-                    <button id="chat-send" style="background:var(--neon-cyan); border:none; padding:5px 12px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-paper-plane"></i></button>
-                </div>
-            </div>
-            <button id="ai-bot-trigger" style="width:55px; height:55px; border-radius:50%; background:linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); border:none; color:#fff; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(0,242,254,0.4);"><i class="fa-solid fa-robot"></i></button>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', botHTML);
-    const botTrigger = document.getElementById('ai-bot-trigger');
-    const chatWin = document.getElementById('ai-chat-window');
-    botTrigger.addEventListener('click', () => { chatWin.style.display = chatWin.style.display === 'none' ? 'flex' : 'none'; });
 });

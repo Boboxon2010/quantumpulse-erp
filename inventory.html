@@ -16,6 +16,10 @@
         .inv-meta { display: flex; justify-content: space-between; margin-top: 15px; font-size: 14px; }
         .inv-qty { font-family: var(--font-heading); font-size: 20px; color: var(--neon-cyan); }
         .inv-card.alert .inv-qty { color: #ff4b4b; }
+        .inv-actions { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; }
+        .inv-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.3s; }
+        .inv-btn:hover { background: var(--neon-cyan); color: #000; border-color: var(--neon-cyan); }
+        .inv-btn.btn-delete:hover { background: #ff4b4b; color: #fff; border-color: #ff4b4b; }
     </style>
 </head>
 <body>
@@ -38,18 +42,20 @@
 
         <main class="main-content">
             <header class="top-navbar glass-panel">
-                <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Ombordan tovar qidirish..."></div>
-                <div class="top-actions"><button class="glass-panel" id="add-stock-btn" style="padding: 10px 20px; color: #fff; cursor: pointer; background: rgba(0,242,254,0.1); border-radius: 8px;"><i class="fa-solid fa-plus"></i> Yangi Tovar</button></div>
+                <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="search-input" placeholder="Ombordan tovar qidirish..."></div>
+                <div class="top-actions">
+                    <button class="glass-panel" id="sync-force-btn" style="padding: 10px 15px; color: #fff; cursor: pointer; background: rgba(0,242,254,0.05); border-radius: 8px; margin-right: 10px; border: 1px solid var(--neon-cyan);"><i class="fa-solid fa-rotate"></i> Yangilash</button>
+                    <button class="glass-panel" id="add-stock-btn" style="padding: 10px 20px; color: #fff; cursor: pointer; background: rgba(0,242,254,0.1); border-radius: 8px;"><i class="fa-solid fa-plus"></i> Yangi Tovar</button>
+                </div>
             </header>
 
             <div class="dashboard-wrapper">
                 <div class="welcome-section">
                     <h1>Hyperion <span>Inventory</span></h1>
-                    <p>Zaxiralar va ombor qoldiqlari nazorati moduli.</p>
+                    <p>Cloud-Sync: Zaxiralar va ombor qoldiqlari nazorati moduli.</p>
                 </div>
 
-                <div class="inv-grid" id="inventory-container">
-                    </div>
+                <div class="inv-grid" id="inventory-container"></div>
             </div>
         </main>
     </div>
@@ -58,46 +64,141 @@
     <script src="js/storage.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const inventory = ERPStorage.getInventory();
+            let inventory = [];
             const container = document.getElementById('inventory-container');
+            const searchInput = document.getElementById('search-input');
 
-            function renderInventory() {
+            // 1. MA'LUMOTLARNI BRAUZER VA CLOUDDAN YUKLASH
+            function loadAndRender() {
+                // Avval mahalliy keshni tekshiramiz
+                if (typeof ERPStorage !== 'undefined' && typeof ERPStorage.getInventory === 'function') {
+                    inventory = ERPStorage.getInventory();
+                } else {
+                    inventory = JSON.parse(localStorage.getItem('qp_inventory')) || [];
+                }
+                renderInventory(inventory);
+            }
+
+            // 2. RENDERING ENGINE (Tovarlarni ekranga chizish + Formatlash)
+            function renderInventory(itemsToRender) {
                 container.innerHTML = "";
-                inventory.forEach(item => {
+                if(itemsToRender.length === 0) {
+                    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;" class="glass-panel">Omborda mahsulotlar mavjud emas yoki yuklanmoqda...</div>`;
+                    return;
+                }
+
+                itemsToRender.forEach((item, index) => {
                     let isAlert = item.qty <= 15;
+                    // Global valyuta formati (app.js dagi funksiya) yoki standart format
+                    const displayPrice = typeof window.formatCurrency === 'function' ? window.formatCurrency(item.price) : `$${item.price}`;
+                    
                     container.innerHTML += `
                         <div class="inv-card glass-panel ${isAlert ? 'alert' : ''}">
-                            <span style="font-size: 11px; color: var(--text-muted); font-family: var(--font-heading);">${item.id}</span>
+                            <span style="font-size: 11px; color: var(--text-muted); font-family: var(--font-heading);">${item.id || 'INV-'+(index+1)}</span>
                             <h3 style="margin-top: 5px;">${item.name}</h3>
-                            <p style="font-size: 13px; color: var(--text-muted);">${item.category}</p>
+                            <p style="font-size: 13px; color: var(--text-muted);">${item.category || 'Kategoriya yo\'q'}</p>
                             <div class="inv-meta">
                                 <div>Soni: <span class="inv-qty">${item.qty} ta</span></div>
-                                <div style="font-weight: 600; color: var(--neon-green); font-size: 16px;">$${item.price}</div>
+                                <div style="font-weight: 600; color: #00e676; font-size: 16px;">${displayPrice}</div>
+                            </div>
+                            <div class="inv-actions">
+                                <button class="inv-btn" onclick="editQty('${item.id || index}')"><i class="fa-solid fa-pen"></i> Soni</button>
+                                <button class="inv-btn btn-delete" onclick="deleteItem('${item.id || index}')"><i class="fa-solid fa-trash"></i> Ochirish</button>
                             </div>
                         </div>
                     `;
                 });
             }
 
-            renderInventory();
+            // 3. BULUTGA SAQLASH VA SINXRONLASHTIRISH
+            function saveState() {
+                if (typeof window.saveAndCloudSync === 'function') {
+                    // Global sinxronizator (Lokalga saqlaydi + GitHub-ga PUT so'rov yuboradi)
+                    window.saveAndCloudSync('qp_inventory', inventory);
+                } else {
+                    localStorage.setItem('qp_inventory', JSON.stringify(inventory));
+                    if(typeof ERPStorage !== 'undefined' && typeof ERPStorage.saveInventory === 'function') {
+                        ERPStorage.saveInventory(inventory);
+                    }
+                }
+                renderInventory(inventory);
+            }
 
-            // Interaktivlik: Yangi mahsulot qo'shish simulyatsiyasi
+            // 4. TOVAR QO'SHISH FUNKSIYASI
             document.getElementById('add-stock-btn').addEventListener('click', () => {
-                const name = prompt("Mahsulot nomini kiriting:");
-                if(name) {
-                    const newItem = {
-                        id: "INV-00" + (inventory.length + 1),
-                        name: name,
-                        category: "Tayyor Mahsulotlar",
-                        qty: Math.floor(Math.random() * 80) + 10,
-                        price: Math.floor(Math.random() * 1000) + 100,
-                        status: "Omborda"
-                    };
-                    inventory.push(newItem);
-                    ERPStorage.saveInventory(inventory);
-                    renderInventory();
+                const name = prompt("Yangi mahsulot nomini kiriting:");
+                if(!name) return;
+                
+                const price = prompt("Mahsulot narxini kiriting ($):", "100");
+                if(!price || isNaN(price)) { alert("Narx noto'g'ri kiritildi!"); return; }
+
+                const qty = prompt("Ombordagi boshlang'ich sonini kiriting:", "50");
+                if(!qty || isNaN(qty)) { alert("Miqdor noto'g'ri kiritildi!"); return; }
+
+                const category = prompt("Kategoriyasini kiriting:", "Tayyor Mahsulotlar") || "Tayyor Mahsulotlar";
+
+                const newItem = {
+                    id: "INV-" + Date.now().toString().slice(-4), // Unikal ID generatsiya
+                    name: name,
+                    category: category,
+                    qty: parseInt(qty),
+                    price: parseFloat(price),
+                    status: "Omborda"
+                };
+
+                inventory.push(newItem);
+                saveState();
+            });
+
+            // 5. TAHRIRLASH VA O'CHIRISH (Global oyna elementlari uchun funksiyalar)
+            window.editQty = function(id) {
+                const item = inventory.find(i => i.id === id || inventory.indexOf(i) == id);
+                if(!item) return;
+                const newQty = prompt(`"${item.name}" uchun yangi miqdorni kiriting:`, item.qty);
+                if(newQty !== null && !isNaN(newQty)) {
+                    item.qty = parseInt(newQty);
+                    if(typeof window.logSystemActivity === 'function') window.logSystemActivity(`Ombor: ${item.name} miqdori ${newQty} ga o'zgartirildi`);
+                    saveState();
+                }
+            };
+
+            window.deleteItem = function(id) {
+                if(confirm("Ushbu mahsulotni ombordan butunlay o'chirmoqchimisiz?")) {
+                    const idx = inventory.findIndex(i => i.id === id || inventory.indexOf(i) == id);
+                    if(idx > -1) {
+                        if(typeof window.logSystemActivity === 'function') window.logSystemActivity(`Ombor: ${inventory[idx].name} o'chirildi`);
+                        inventory.splice(idx, 1);
+                        saveState();
+                    }
+                }
+            };
+
+            // 6. REAL-TIME SEARCH (Qidiruv tizimi)
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                const filtered = inventory.filter(item => 
+                    item.name.toLowerCase().includes(query) || 
+                    (item.id && item.id.toLowerCase().includes(query)) ||
+                    (item.category && item.category.toLowerCase().includes(query))
+                );
+                renderInventory(filtered);
+            });
+
+            // 7. MAJBURIY BULUTDAN RE-FETCH QILISH TUGMASI
+            document.getElementById('sync-force-btn').addEventListener('click', async () => {
+                if(typeof window.loadDataFromGitHub === 'function') {
+                    await window.loadDataFromGitHub();
+                    setTimeout(loadAndRender, 1500); // Ma'lumot kelgach qayta chizish
+                } else {
+                    loadAndRender();
                 }
             });
+
+            // Birinchi marta ochilganda ishga tushirish
+            loadAndRender();
+
+            // Agar uzoqdan ma'lumot yuklansa, avtomat ekranda aks etishi uchun taymer
+            setTimeout(loadAndRender, 2500);
         });
     </script>
 </body>
